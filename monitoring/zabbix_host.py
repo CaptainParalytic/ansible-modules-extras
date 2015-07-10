@@ -92,7 +92,7 @@ options:
         required: false
     create_only:
         description:
-            - Will only create a host in Zabbix if it does not already exist, but will not update an existing host.e'
+            - Will only create a host in Zabbix if it does not already exist, but will not update an existing host
         required: false
         default: false
 '''
