@@ -90,7 +90,11 @@ options:
             - Please review the interface documentation for more information on the supported properties
             - 'https://www.zabbix.com/documentation/2.0/manual/appendix/api/hostinterface/definitions#host_interface'
         required: false
-        default: []
+    create_only:
+        description:
+            - Will only create a host in Zabbix if it does not already exist, but will not update an existing host.e'
+        required: false
+        default: false
 '''
 
 EXAMPLES = '''
@@ -370,6 +374,7 @@ def main():
             state=dict(default="present", choices=['present', 'absent']),
             timeout=dict(type='int', default=10),
             interfaces=dict(required=False),
+            create_only=dict(required=False, choices=BOOLEANS, default=False),
             proxy=dict(required=False)
         ),
         supports_check_mode=True
@@ -388,6 +393,7 @@ def main():
     state = module.params['state']
     timeout = module.params['timeout']
     interfaces = module.params['interfaces']
+    create_only = module.params['create_only']
     proxy = module.params['proxy']
 
     # convert enabled to 0; disabled to 1
@@ -402,6 +408,13 @@ def main():
         module.fail_json(msg="Failed to connect to Zabbix server: %s" % e)
 
     host = Host(module, zbx)
+    
+    # check if host exist
+    is_host_exist = host.is_host_exist(host_name)
+
+    if is_host_exist and create_only:
+        module.exit_json(changed=False,
+                         result="'create_only' specified so existing host not updated")  
 
     template_ids = []
     if link_templates:
@@ -423,10 +436,7 @@ def main():
     if proxy:
         proxy_id = host.get_proxyid_by_proxy_name(proxy)
 
-    # check if host exist
-    is_host_exist = host.is_host_exist(host_name)
-
-    if is_host_exist:
+    if is_host_exist:     
         # get host id by host name
         zabbix_host_obj = host.get_host_by_host_name(host_name)
         host_id = zabbix_host_obj['hostid']
